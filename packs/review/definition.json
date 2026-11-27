@@ -1,0 +1,1 @@
+{"record_type":"record","fields":{"category":"string"},"required":["category"],"worker":"reviewer"}

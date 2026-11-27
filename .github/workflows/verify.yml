@@ -1,0 +1,21 @@
+name: Verify starter
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: false
+      - run: ./scripts/setup.sh
+      - run: .factory/bin/factory validate
+      - run: .factory/bin/factory test
+      - run: .factory/bin/factory test --receipt packs/review/pack.yaml > test-evidence.json
+      - run: .factory/bin/factory up
+      - run: curl --fail --silent http://127.0.0.1:8080/health | jq -e '.store == "sqlite"'
+      - if: always()
+        run: docker compose down

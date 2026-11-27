@@ -1,0 +1,6 @@
+name: review
+node_types: [record]
+worker_roles: [reviewer]
+rules:
+  - id: preserve-id
+    text: Keep the source identifier unchanged.
