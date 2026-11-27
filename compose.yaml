@@ -3,10 +3,12 @@ services:
     image: alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
     entrypoint: ["/engine/api"]
     environment:
+      FACTORY_UI_DIR: /engine/ui
       FACTORY_STORE_MODE: sqlite
       FACTORY_DB_PATH: /data/factory.sqlite
       LLM_GATEWAY_CONFIG: /config/gateway.yaml
     volumes:
+      - ./.factory/ui:/engine/ui:ro
       - ./.factory/bin/api-linux:/engine/api:ro
       - ./gateway.yaml:/config/gateway.yaml:ro
       - workspace:/data
