@@ -36,17 +36,26 @@ jobs:
               engine) docker run --rm -e FACTORY_STORE_MODE=memory --entrypoint factory "$image" readiness ;;
               worker) docker run --rm "$image" -help 2>&1 | grep -- '-records' ;;
               connector)
-                cat >sources.yaml <<YAML
+                mkdir -p sample/vendor
+                cat >sample/vendor/tools.yaml <<YAML
           tools: {lookup: {url: "https://raw.githubusercontent.com/idristarwala/agent-factory/$(cat ../../engine.commit)/schemas/pack.schema.json"}}
-          grants: [{pack: review, tools: [lookup], side_effects: [read-only]}]
+          YAML
+                digest=$(sha256sum sample/vendor/tools.yaml | cut -d' ' -f1)
+                cat >sample/factory.yaml <<YAML
+          tool_packages: [{path: vendor/tools.yaml, sha256: "$digest"}]
+          evidence:
+            grants: [{pack: review, tools: [lookup], side_effects: [read-only]}]
           YAML
                 sample() {
-                  docker run --rm -v "$PWD/sources.yaml:/sources.yaml:ro" -e FACTORY_SOURCE_CONFIG=/sources.yaml -e "FACTORY_PACK=$1" "$image" lookup "${@:2}"
+                  docker run --rm -v "$PWD/sample:/workspace:ro" -e FACTORY_SOURCE_CONFIG=/workspace/factory.yaml -e "FACTORY_PACK=$1" "$image" lookup "${@:2}"
                 }
                 if sample unknown 2>error.log; then exit 1; fi
                 grep -F 'source unavailable for this factory' error.log
                 if sample review undeclared=one 2>error.log; then exit 1; fi
                 grep -F 'unsupported source query parameter' error.log
-                sample review | jq -e '.type == "object" and (.required | index("worker_roles") != null)' ;;
+                sample review | jq -e '.type == "object" and (.required | index("worker_roles") != null)'
+                echo >>sample/vendor/tools.yaml
+                if sample review 2>error.log; then exit 1; fi
+                grep -F 'SHA-256 mismatch' error.log ;;
             esac
           done

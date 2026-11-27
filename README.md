@@ -32,6 +32,10 @@ Edit `packs/review/definition.json` for your record type and editable fields. Ed
 .factory/bin/factory test --receipt packs/review/pack.yaml > test-evidence.json
 ```
 
+## Share evidence tools
+
+Vendor a reviewed tool definition file from Git or an OCI artifact in your workspace. Declare its relative path and file SHA-256 under `tool_packages` in `factory.yaml`, then define the consuming pack’s grants under `evidence.grants`. Run `.factory/bin/factory validate factory.yaml` before deployment. Mount the manifest and vendored file together and set `FACTORY_SOURCE_CONFIG` to the mounted manifest path for connector reads. The connector verifies the pin when it loads the definitions. [Manifest example and configuration](https://github.com/idristarwala/agent-factory/blob/0ace5447d7637534a5ce1456cff8f3413b011b86/docs/HTTP_TOOLS.md#share-tool-definitions-across-factories)
+
 ## License
 
 Copyright © 2026 Idris Tarwala. Copying, modifying or distributing this software requires prior written permission from the copyright holder. [License](LICENSE)
