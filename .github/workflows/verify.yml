@@ -17,5 +17,9 @@ jobs:
       - run: .factory/bin/factory test --receipt packs/review/pack.yaml > test-evidence.json
       - run: .factory/bin/factory up
       - run: curl --fail --silent http://127.0.0.1:8080/health | jq -e '.store == "sqlite"'
+      - name: Open the local operator workspace
+        run: |
+          google-chrome --headless --no-sandbox --disable-gpu --virtual-time-budget=5000 --dump-dom http://127.0.0.1:8080/ > /tmp/workspace-dom.html
+          grep -Fq 'aria-label="Workspace navigation"' /tmp/workspace-dom.html
       - if: always()
         run: docker compose down

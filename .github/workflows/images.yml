@@ -33,7 +33,15 @@ jobs:
             image=$(jq -er --arg role "$role" '.images[$role]' release-manifest.json)
             docker run --rm --entrypoint cat "$image" /usr/share/licenses/agent-factory/LICENSE | cmp - LICENSE
             case "$role" in
-              engine) docker run --rm -e FACTORY_STORE_MODE=memory --entrypoint factory "$image" readiness ;;
+              engine)
+                docker run --rm -e FACTORY_STORE_MODE=memory --entrypoint factory "$image" readiness
+                api=$(docker run -d -p 127.0.0.1::8080 --entrypoint api -e FACTORY_STORE_MODE=memory -e API_TOKEN=ci-workspace -e LLM_GATEWAY_CONFIG=/config/gateway.yaml -v "$PWD/../../gateway.yaml:/config/gateway.yaml:ro" "$image")
+                trap 'docker rm -f "$api" >/dev/null' EXIT
+                url="http://$(docker port "$api" 8080/tcp)"
+                curl --retry 10 --retry-connrefused --retry-delay 1 -fsS "$url/health" | jq -e '.store == "memory"'
+                test "$(curl -s -o /dev/null -w '%{http_code}' "$url/api/settings")" = 401
+                google-chrome --headless --no-sandbox --disable-gpu --virtual-time-budget=10000 --dump-dom "$url/" > /tmp/engine-dom.html
+                grep -Fq 'Connect to Agent Factory' /tmp/engine-dom.html ;;
               worker) docker run --rm "$image" -help 2>&1 | grep -- '-records' ;;
               connector)
                 mkdir -p sample/vendor
