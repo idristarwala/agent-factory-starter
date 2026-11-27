@@ -1,0 +1,23 @@
+services:
+  api:
+    image: alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+    entrypoint: ["/engine/api"]
+    environment:
+      FACTORY_STORE_MODE: sqlite
+      FACTORY_DB_PATH: /data/factory.sqlite
+      LLM_GATEWAY_CONFIG: /config/gateway.yaml
+    volumes:
+      - ./.factory/bin/api-linux:/engine/api:ro
+      - ./gateway.yaml:/config/gateway.yaml:ro
+      - workspace:/data
+    ports:
+      - "127.0.0.1:${FACTORY_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-Y", "off", "-qO", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+volumes:
+  workspace:

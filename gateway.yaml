@@ -1,0 +1,7 @@
+gateways:
+  local:
+    base_url: http://host.docker.internal:11434/v1
+    auth: {type: none}
+models:
+  cheap: {gateway: local, protocol: openai, model: local-model}
+  frontier: {gateway: local, protocol: openai, model: local-model}

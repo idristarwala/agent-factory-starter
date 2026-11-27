@@ -1,0 +1,9 @@
+{
+  "definition": "definition.json",
+  "goal": "Set category to the category named by the source.",
+  "record": {"id":"sample-1","type":"record","attributes":{"category":"","source":"The category is general."}},
+  "worker_reply": {"category":"general"},
+  "judge_reply": "APPROVE: The proposed category matches the source.",
+  "expected_patch": {"category":"general"},
+  "expected_approved": true
+}
