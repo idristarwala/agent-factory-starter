@@ -34,6 +34,10 @@ Edit `packs/review/definition.json` for your record type and editable fields. Ed
 .factory/bin/factory test --receipt packs/review/pack.yaml > test-evidence.json
 ```
 
+## Verify packs in GitLab CI
+
+When you host this starter in GitLab, the root `.gitlab-ci.yml` runs the `verify-packs` job using a runner that supports container images and can fetch the pinned engine and Go dependencies. It builds the host CLI with `./scripts/setup.sh --cli-only`, validates all packs in `factory.yaml`, and runs their fixtures without Docker or model credentials. Set the job variable `RECEIPT_PACK` to the pack whose committed revision you want to publish. The successful job saves its fixture receipt as the `test-evidence.json` artifact. [GitLab pipeline](.gitlab-ci.yml) · [GitHub Actions verification](.github/workflows/verify.yml)
+
 ## Share evidence tools
 
 Vendor a reviewed tool definition file from Git or an OCI artifact in your workspace. Declare its relative path and file SHA-256 under `tool_packages` in `factory.yaml`, then define the consuming pack’s grants under `evidence.grants`. Run `.factory/bin/factory validate factory.yaml` before deployment. Mount the manifest and vendored file together and set `FACTORY_SOURCE_CONFIG` to the mounted manifest path for connector reads. The connector verifies the pin when it loads the definitions. [Manifest example and configuration](https://github.com/idristarwala/agent-factory/blob/0ace5447d7637534a5ce1456cff8f3413b011b86/docs/HTTP_TOOLS.md#share-tool-definitions-across-factories)

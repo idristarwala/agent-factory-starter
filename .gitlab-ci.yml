@@ -1,0 +1,13 @@
+verify-packs:
+  stage: test
+  image: golang:1.26
+  variables:
+    RECEIPT_PACK: packs/review/pack.yaml
+  script:
+    - ./scripts/setup.sh --cli-only
+    - .factory/bin/factory validate factory.yaml
+    - .factory/bin/factory test factory.yaml
+    - .factory/bin/factory test --receipt "$RECEIPT_PACK" > test-evidence.json
+  artifacts:
+    paths:
+      - test-evidence.json
