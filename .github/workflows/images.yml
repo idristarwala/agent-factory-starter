@@ -1,0 +1,52 @@
+name: Verify pinned release images
+on: [pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports: [5000/tcp]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: false
+      - name: Build against the disposable registry
+        env:
+          IMAGE_REPOSITORY: localhost:${{ job.services.registry.ports[5000] }}/factory
+        run: GITHUB_REF_NAME=v0.0.0-check ./scripts/build-release.sh
+      - name: Verify artifacts and run all roles by digest
+        run: |
+          cd .factory/release
+          jq -e --arg engine "$(cat ../../engine.commit)" --arg starter "$GITHUB_SHA" '
+            .source.commit == $engine and .build.commit == $starter and
+            .image == .images.engine and (.images | keys == ["connector","engine","worker"])
+          ' release-manifest.json
+          jq -er '.binaries[]' release-manifest.json | while read -r binary; do test -s "$binary"; done
+          for role in engine worker connector; do
+            image=$(jq -er --arg role "$role" '.images[$role]' release-manifest.json)
+            docker run --rm --entrypoint cat "$image" /usr/share/licenses/agent-factory/LICENSE | cmp - LICENSE
+            case "$role" in
+              engine) docker run --rm -e FACTORY_STORE_MODE=memory --entrypoint factory "$image" readiness ;;
+              worker) docker run --rm "$image" -help 2>&1 | grep -- '-records' ;;
+              connector)
+                cat >sources.yaml <<YAML
+          tools: {lookup: {url: "https://raw.githubusercontent.com/idristarwala/agent-factory/$(cat ../../engine.commit)/schemas/pack.schema.json"}}
+          grants: [{pack: review, tools: [lookup], side_effects: [read-only]}]
+          YAML
+                sample() {
+                  docker run --rm -v "$PWD/sources.yaml:/sources.yaml:ro" -e FACTORY_SOURCE_CONFIG=/sources.yaml -e "FACTORY_PACK=$1" "$image" lookup "${@:2}"
+                }
+                if sample unknown 2>error.log; then exit 1; fi
+                grep -F 'source unavailable for this factory' error.log
+                if sample review undeclared=one 2>error.log; then exit 1; fi
+                grep -F 'unsupported source query parameter' error.log
+                sample review | jq -e '.type == "object" and (.required | index("worker_roles") != null)' ;;
+            esac
+          done
